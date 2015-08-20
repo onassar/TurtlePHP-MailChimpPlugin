@@ -4,7 +4,7 @@
      * Namespace
      * 
      */
-    namespace Plugin\CampaignMonitor;
+    namespace Plugin\MailChimp;
 
     /**
      * Data
@@ -28,7 +28,7 @@
 
     // Store
     \Plugin\Config::add(
-        'TurtlePHP-CampaignMonitorPlugin',
+        'TurtlePHP-MailChimpPlugin',
         array(
             'credentials' => $credentials,
             'lists' => $lists

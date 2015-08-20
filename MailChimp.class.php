@@ -12,22 +12,22 @@
     }
 
     // dependency check
-    if (class_exists('\\CS_REST_Subscribers') === false) {
+    if (class_exists('\\Drewm\\MailChimp') === false) {
         throw new \Exception(
-            '*CS_REST_Subscribers* class required. Please see ' .
-            'https://github.com/Znarkus/postmark-php'
+            '*MailChimp* class required. Please see ' .
+            'https://github.com/drewm/mailchimp-api'
         );
     }
 
     /**
-     * CampaignMonitor
+     * MailChimp
      * 
-     * Campaign Monitor plugin for TurtlePHP
+     * MailChimp plugin for TurtlePHP
      * 
      * @author   Oliver Nassar <onassar@gmail.com>
      * @abstract
      */
-    abstract class CampaignMonitor
+    abstract class MailChimp
     {
         /**
          * _configPath
@@ -63,7 +63,7 @@
         public static function _add($listId, array $details)
         {
             // Config
-            $config = getConfig('TurtlePHP-CampaignMonitorPlugin');
+            $config = getConfig('TurtlePHP-MailChimpPlugin');
             $apiKey = $config['credentials']['apiKey'];
             $auth = array('api_key' => $apiKey);
             $wrapper = (new \CS_REST_Subscribers($listId, $auth));
@@ -98,7 +98,7 @@
         public static function _remove($listId, $email)
         {
             // Config
-            $config = getConfig('TurtlePHP-CampaignMonitorPlugin');
+            $config = getConfig('TurtlePHP-MailChimpPlugin');
             $apiKey = $config['credentials']['apiKey'];
             $auth = array('api_key' => $apiKey);
             $wrapper = (new \CS_REST_Subscribers($listId, $auth));
@@ -128,7 +128,7 @@
          */
         public static function add($listKey, array $details)
         {
-            $config = getConfig('TurtlePHP-CampaignMonitorPlugin');
+            $config = getConfig('TurtlePHP-MailChimpPlugin');
             $listId = $config['lists'][$listKey];
             $data = array(
                 'EmailAddress' => $details['email'],
@@ -165,7 +165,7 @@
          */
         public static function remove($listKey, $email)
         {
-            $config = getConfig('TurtlePHP-CampaignMonitorPlugin');
+            $config = getConfig('TurtlePHP-MailChimpPlugin');
             $listId = $config['lists'][$listKey];
             $response = self::_remove($listId, $email);
             if ($response === false) {
@@ -210,5 +210,5 @@
     $parent = ($info['dirname']) . '/' . ($info['basename']);
     $configPath = ($parent) . '/config.inc.php';
     if (is_file($configPath)) {
-        CampaignMonitor::setConfigPath($configPath);
+        MailChimp::setConfigPath($configPath);
     }
