@@ -48,35 +48,48 @@
         protected static $_initiated = false;
 
         /**
+         * _resource
+         *
+         * @var    \Drewm\MailChimp
+         * @access protected
+         * @static
+         */
+        protected static $_resource;
+
+        /**
          * _add
          *
          * @note   The set_error_handler and retore_error_handler calls below
          *         should allow the application logic to flow uninterrupted
-         * @note   201 status check is because CM sends a 201 upon successful
-         *         addition of an email address
          * @static
          * @access protected
          * @param  string $listId
          * @param  array $details
-         * @return CS_REST_Wrapper_Result|false
+         * @return array|false
          */
         public static function _add($listId, array $details)
         {
-            // Config
-            $config = getConfig('TurtlePHP-MailChimpPlugin');
-            $apiKey = $config['credentials']['apiKey'];
-            $auth = array('api_key' => $apiKey);
-            $wrapper = (new \CS_REST_Subscribers($listId, $auth));
-
             // Handle case where something (eg. connection) fails
             set_error_handler(function() {});
-            $response = $wrapper->add($details);
+            $response = self::$_resource->call(
+                'lists/subscribe',
+                array(
+                    'id'                => $listId,
+                    'email'             => array('email' => $details['email']),
+                    'merge_vars'        => $details['vars'],
+                    'double_optin'      => false,
+                    'update_existing'   => true,
+                    'replace_interests' => false,
+                    'send_welcome'      => false
+                )
+            );
             restore_error_handler();
             if (
-                is_object($response)
-                && (int) $response->http_status_code !== 201
+                isset($response['status'])
+                && isset($response['error'])
+                && $response['error']
             ) {
-                error_log(print_r($response, true));
+                error_log(print_r($response['error'], true));
                 return false;
             }
             return $response;
@@ -93,25 +106,29 @@
          * @access protected
          * @param  string $listId
          * @param  string $email
-         * @return CS_REST_Wrapper_Result|false
+         * @return false|array
          */
         public static function _remove($listId, $email)
         {
-            // Config
-            $config = getConfig('TurtlePHP-MailChimpPlugin');
-            $apiKey = $config['credentials']['apiKey'];
-            $auth = array('api_key' => $apiKey);
-            $wrapper = (new \CS_REST_Subscribers($listId, $auth));
-
             // Handle case where something (eg. connection) fails
             set_error_handler(function() {});
-            $response = $wrapper->delete($email);
+            $response = self::$_resource->call(
+                'lists/unsubscribe',
+                array(
+                    'id'                => $listId,
+                    'email'             => array('email' => $email),
+                    'delete_member'     => false,
+                    'send_goodbye'      => false,
+                    'send_notify'       => false
+                )
+            );
             restore_error_handler();
             if (
-                is_object($response)
-                && (int) $response->http_status_code !== 200
+                isset($response['status'])
+                && isset($response['error'])
+                && $response['error']
             ) {
-                error_log(print_r($response, true));
+                error_log(print_r($response['error'], true));
                 return false;
             }
             return $response;
@@ -131,24 +148,14 @@
             $config = getConfig('TurtlePHP-MailChimpPlugin');
             $listId = $config['lists'][$listKey];
             $data = array(
-                'EmailAddress' => $details['email'],
-                'Resubscribe' => true
+                'email' => $details['email'],
+                'vars' => $details
             );
-            if (isset($details['name'])) {
-                $data['Name'] = $details['name'];
-            } else {
-                if (isset($details['firstName'])) {
-                    $data['Name'] = $details['firstName'];
-                }
-                if (isset($details['lastName'])) {
-                    $data['Name'] .= ' ' . ($details['lastName']);
-                }
-            }
             $response = self::_add($listId, $data);
             if ($response === false) {
                 error_log(
                     'Error when attempting to add *' . ($details['email']) .
-                    '* to Campaign Monitor (list: ' . ($listId) . ')'
+                    '* to MailChimp (list: ' . ($listId) . ')'
                 );
             }
             return $response;
@@ -171,7 +178,7 @@
             if ($response === false) {
                 error_log(
                     'Error when attempting to remove *' . ($email) .
-                    '* from Campaign Monitor (list: ' . ($listId) . ')'
+                    '* from MailChimp (list: ' . ($listId) . ')'
                 );
             }
             return $response;
@@ -189,6 +196,9 @@
             if (is_null(self::$_initiated) === false) {
                 self::$_initiated = true;
                 require_once self::$_configPath;
+                $config = getConfig('TurtlePHP-MailChimpPlugin');
+                $key = $config['credentials']['key'];
+                self::$_resource = (new \Drewm\MailChimp($key));
             }
         }
 
